@@ -60,7 +60,7 @@ app.secret_key = 'the_best_of_the_best_tutors'
 
 
 #здесь будет главная
-@app.route('/') # выводим 6 случайных преподавателей
+@app.route('/')   # выводим 6 случайных преподавателей
 @app.route('/<all>/')  # выводим всех преподавателей
 def index(all=None):
     if all == 'all':
@@ -144,18 +144,18 @@ def booking(id_teacher, week_day, time):
 
 #@app.route('/booking_done/', methods=['GET', 'POST'])   #заявка отправлена
 #def booking_done():
-    #form = ClientContacts(request.form)
+    # form = ClientContacts(request.form)
     # id_teacher = form.clientTeacher.data
     # client = request.form['clientName']
-    #phone = form.clientPhone.data
+    # phone = form.clientPhone.data
     # week_day = form.clientWeekday.data
     # time = form.clientTime.data
-    #appending_json('client_applications.json', d)
-    #return render_template('booking_done.html',
-                           #client=client,
-     #                      phone=phone)
-        #                   week_day=week_day, time=time,
-        #                   name_teacher=lst_data[1][int(id_teacher)]['name'])
+    # appending_json('client_applications.json', d)
+    # return render_template('booking_done.html',
+    #                        client=client,
+    #                        phone=phone,
+    #                        week_day=week_day, time=time,
+    #                        name_teacher=lst_data[1][int(id_teacher)]['name'])
 
 if __name__ == '__main__':
-    app.run(debug = True)  # запустим сервер
+    app.run()  # запустим сервер
