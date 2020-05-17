@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, request
 from flask_wtf import FlaskForm, CsrfProtect
-from wtforms import StringField, RadioField
+from wtforms import StringField, RadioField, HiddenField
 from wtforms.validators import InputRequired, Email
 import json
 from numpy.random import default_rng
@@ -41,7 +41,9 @@ def get_teachers(all_teachers_lst, goal):
 class ClientContacts(FlaskForm):
     clientName = StringField('Вас зовут', [InputRequired(message='Эта информация нам нужна для обратной связи')])
     clientPhone = StringField('Ваш телефон', [InputRequired(message='Эта информация нам нужна для обратной связи')])
-
+    clientTeacher = HiddenField()
+    clientWeekday = HiddenField()
+    clientTime = HiddenField()
 
 class ClientRequest(FlaskForm):
     clientAvailableTime = RadioField('Сколько времени есть?', default='a',
@@ -126,8 +128,11 @@ def booking(id_teacher, week_day, time):
     if form.validate_on_submit():
         name = form.clientName.data
         phone = form.clientPhone.data
+        week_day_hidden = form.clientWeekday.data
+        time_hidden = form.clientTime.data
+        id_teacher_hidden = form.clientTeacher.data
         d = {'clientName': name, 'clientPhone': phone,
-             'id_teacher': id_teacher, 'week_day': week_day, 'time': time}
+             'id_teacher': id_teacher_hidden, 'week_day': week_day_hidden, 'time': time_hidden}
         appending_json('client_booking.json', d)
         return render_template('booking_done.html',
                                name=name,

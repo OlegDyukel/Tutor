@@ -5,7 +5,7 @@
     <div class="row mt-5">
       <div class="col-10 col-md-6 offset-1 offset-md-3 mb-3">
         <form action="/booking/{{ id_teacher }}/{{ week_day }}/{{ time }}/" method="POST" class="card mb-3">
-          {{ form.hidden_tag() }}
+          {{ form.csrf_token() }}
           <div class="card-body text-center pt-5">
             <img src="{{ data_teacher.picture }}" class="mb-3" width="95" alt="">
             <h2 class="h5 card-title mt-2 mb-2">{{ data_teacher.name }}</h2>
@@ -15,9 +15,9 @@
           <hr />
           <div class="card-body mx-3">
               <div class="row">
-                  <input class="form-control" type="hidden" name="clientWeekday" value="{{ week_day }}">
-                  <input class="form-control" type="hidden" name="clientTime" value="{{ time }}">
-                  <input class="form-control" type="hidden" name="clientTeacher" value="{{ id_teacher }}">
+                  {{ form.clientWeekday(value = week_day) }}
+                  {{ form.clientTime(value = time) }}
+                  {{ form.clientTeacher(value = id_teacher) }}
               </div>
 
             <div>{{ form.clientName.label(class_='control-label') }}</div>

@@ -13,12 +13,19 @@
           <div class="row">
             <div class="col">
               <p>{{ RequestForm.clientGoal.label(class_='control-label') }}</p>
-                  {{ RequestForm.clientGoal(class_='form-check') }}
-
+              {% for goal in RequestForm.clientGoal %}
+              <div class="form-check">
+                {{ goal }} {{ goal.label }}
+              </div>
+              {% endfor %}
             </div>
             <div class="col">
               <p>{{ RequestForm.clientAvailableTime.label(class_='control-label') }}</p>
-                  {{ RequestForm.clientAvailableTime(class_='form-check') }}
+              {% for period in RequestForm.clientAvailableTime %}
+              <div class="form-check">
+                {{ period }} {{ period.label }}
+              </div>
+              {% endfor %}
             </div>
           </div>
         </div>
