@@ -1,40 +1,25 @@
-from flask import Flask, render_template, redirect, request
-from flask_wtf import FlaskForm, CsrfProtect
-from wtforms import StringField, RadioField, HiddenField
-from wtforms.validators import InputRequired, Email
-import json
-from numpy.random import default_rng
-import numpy as np
+import ast
+import os
 
-##### получаем данные из json файла
-with open('data.json', 'r') as f:
-    lst_data = json.load(f)
+from datetime import datetime
+from sqlalchemy import func, case
+from flask import Flask, render_template, request
+from flask_wtf import FlaskForm
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from wtforms import StringField, RadioField, HiddenField, FormField
+from wtforms.validators import InputRequired
 
-##### добавим справочники дней недели и доступного времени
+##### добавим справочники дней недели, доступного времени и целей
 dict_week_days = {'mon': 'Понедельник', 'tue': 'Вторник', 'wed': 'Среда',
              'thu': 'Четверг', 'fri': 'Пятница', 'sat': 'Суббота', 'sun': 'Воскресенье'}
 
-dict_available_time = {'a': '1-2 часа в неделю', 'b': '3-5 часов в неделю',
+dict_time_ability = {'a': '1-2 часа в неделю', 'b': '3-5 часов в неделю',
                       'c': '5-7 часов в неделю', 'd': '7-10 часов в неделю'}
 
-
-##### функция для добавления информации о клиентах в файл
-def appending_json(file_name, appended_element):
-    lst_data = []
-    with open(file_name, 'r') as f:
-        lst_data = json.load(f)
-    lst_data.append(appended_element)
-    with open(file_name, 'w') as f:
-        json.dump(lst_data, f)
-
-
-##### функция выдает всех учителей, у которых есть выбранная цель
-def get_teachers(all_teachers_lst, goal):
-    lst = []
-    for i, teacher in enumerate(all_teachers_lst):
-        if goal in teacher["goals"]:
-            lst.append(teacher)
-    return lst
+dict_goals = {"travel": ["для путешествий", "⛱"], "study": ["для учебы", "🏫"],
+         "work": ["для работы", "🏢"], "relocate": ["для переезда", "🚜"],
+         "developer": ["для программирования", "🔥"]}
 
 
 ##### формы для бронирования учителей и запроса на подбор
@@ -47,18 +32,85 @@ class ClientContacts(FlaskForm):
 
 class ClientRequest(FlaskForm):
     clientAvailableTime = RadioField('Сколько времени есть?', default='a',
-                                     choices=[(key, value) for key, value in dict_available_time.items()])
+                                     choices=[(key, value) for key, value in dict_time_ability.items()])
     clientGoal = RadioField('Какая цель занятий?', default='travel',
-                            choices=[(key, value[0]) for key, value in lst_data[0].items()])
+                            choices=[(key, value[0]) for key, value in dict_goals.items()])
+    # clientContacts = FormField(ClientContacts)
 
 
 ############################## FLASK ################################
 app = Flask(__name__)
-app.secret_key = 'the_best_of_the_best_tutors'
+app.secret_key = 'best_of_the_best_tutors'
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)      # единожды запустить flask db init
 
-# csrf = CsrfProtect()
-# app.config.from_object('config.settings')
-# csrf.init_app(app)
+class Teacher(db.Model):
+    __tablename__ = "teachers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    about = db.Column(db.Text, unique=True)
+    rating = db.Column(db.Float)
+    picture = db.Column(db.Text, unique=True)
+    price = db.Column(db.Integer, nullable=False)
+    goals = db.Column(db.String(), nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    slot = db.relationship("TeacherSlot", back_populates="teacher")
+    booking = db.relationship("Booking", back_populates="teacher")
+
+class TeacherSlot(db.Model):
+    __tablename__ = "teacher_slots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    week_day = db.Column(db.String(10), nullable=False)
+    time = db.Column(db.String(5), nullable=False)
+    is_available = db.Column(db.Boolean, nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"))
+    teacher = db.relationship("Teacher", back_populates="slot")
+
+    booking = db.relationship("Booking", uselist=False, back_populates="slot")
+
+class Student(db.Model):
+    __tablename__ = "students"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(50), nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    booking = db.relationship("Booking", back_populates="student")
+    teacher_request = db.relationship("TeacherRequest", back_populates="student")
+
+class Booking(db.Model):
+    __tablename__ = "bookings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    week_day = db.Column(db.String(10), nullable=False)
+    time = db.Column(db.String(5), nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"))
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"))
+    slot_id = db.Column(db.Integer, db.ForeignKey("teacher_slots.id"))
+
+    teacher = db.relationship("Teacher", back_populates="booking")
+    student = db.relationship("Student", back_populates="booking")
+    slot = db.relationship("TeacherSlot", back_populates="booking")
+
+class TeacherRequest(db.Model):
+    __tablename__ = "teacher_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    goal = db.Column(db.String())
+    time_ability = db.Column(db.String())
+    date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"))
+    student = db.relationship("Student", back_populates="teacher_request")
 
 
 #здесь будет главная
@@ -66,101 +118,112 @@ app.secret_key = 'the_best_of_the_best_tutors'
 @app.route('/<all>/')  # выводим всех преподавателей
 def index(all=None):
     if all == 'all':
-        n = len(lst_data[1])
+        n = db.session.query(Teacher).count()
     else:
         n = 6
-    rng = default_rng()
-    teachers = rng.choice(lst_data[1], size=n, replace=False)
-    goals = lst_data[0]
+    teachers = db.session.query(Teacher).order_by(func.random()).limit(n)
+    goals = dict_goals
     return render_template('index.html', teachers=teachers, goals=goals)
 
 
 #здесь будет цель <goal>
 @app.route('/goals/<goal>/')
 def goals(goal):
-    teachers = get_teachers(lst_data[1], goal)
-    # получаем индексы отсортированные по убыванию рейтинга
-    ids_sorted = np.argsort(-np.array([teacher['rating'] for teacher in teachers]))
-    # формируем отсортированный список учитилей
-    teachers_sorted = []
-    for i in ids_sorted:
-        teachers_sorted.append(teachers[i])
-    return render_template('goal.html', goal=lst_data[0][goal], teachers=teachers_sorted)
+    teachers_db = db.session.query(Teacher)\
+        .filter(Teacher.goals.like('%'+goal+'%'))\
+        .order_by(Teacher.rating.desc()).all()
+    return render_template('goal.html', goal=dict_goals[goal], teachers=teachers_db)
 
 
-@app.route('/profiles/<int:id_teacher>/') #здесь будет преподаватель <id учителя>
+@app.route('/profiles/<int:id_teacher>/')  # здесь будет преподаватель <id учителя>
 def profiles(id_teacher):
+    teacher_db = db.session.query(Teacher).get_or_404(id_teacher)
+    teacher_slot = db.session.query(TeacherSlot)\
+        .filter(TeacherSlot.teacher_id == int(id_teacher)).all()
+
+    # Получаем занятые дни
+    occupied_days = db.session.query(TeacherSlot.week_day)\
+        .filter(TeacherSlot.teacher_id == int(id_teacher))\
+        .group_by(TeacherSlot.week_day)\
+        .having(func.sum(case([(TeacherSlot.is_available == True, 1)], else_=0)) == 0).all()
+    occupied_days = [d[0] for d in occupied_days]
+
     return render_template('profile.html',
-                           teacher=lst_data[1][int(id_teacher)],
-                           goals=lst_data[0],
+                           id=teacher_db.id,
+                           name=teacher_db.name,
+                           about=teacher_db.about,
+                           picture=teacher_db.picture,
+                           rating=teacher_db.rating,
+                           price=teacher_db.price,
+                           goals=ast.literal_eval(teacher_db.goals),
+                           goals_ru=dict_goals,
+                           teacher_slot=teacher_slot,
+                           occupied_days=occupied_days,
                            dict_week_days=dict_week_days)
 
-
-@app.route('/request_teacher/') #здесь будет заявка на подбор
+# заявка на подбор
+@app.route('/request_teacher/', methods=['GET', 'POST'])
 def request_teacher():
-    RequestForm = ClientRequest()
-    ContactsForm = ClientContacts()
-    return render_template('request.html', RequestForm=RequestForm, ContactsForm=ContactsForm)
+    FormRequest = ClientRequest()
+    FormContacts = ClientContacts()
+    if request.method == 'POST':     # FormRequest.validate_on_submit():
+        time_ability = dict_time_ability[FormRequest.clientAvailableTime.data]
+        goal = FormRequest.clientGoal.data
+        client_name = FormContacts.clientName.data
+        client_phone = FormContacts.clientPhone.data
+
+        student = Student(name=client_name, phone=client_phone)
+        db.session.add(student)
+
+        teacher_request = TeacherRequest(goal=goal, time_ability=time_ability, student=student)
+        db.session.add(teacher_request)
+
+        db.session.commit()
+
+        return render_template('request_done.html', time_ability=time_ability,
+                               goal=dict_goals[goal][0], client_name=client_name, client_phone=client_phone)
+    return render_template('request.html', RequestForm=FormRequest, ContactsForm=FormContacts)
 
 
-@app.route('/request_teacher_done/', methods=['POST'])   #заявка на подбор отправлена
-def request_teacher_done():
-    RequestForm = ClientRequest()
-    ContactsForm = ClientContacts()
-    if request.method == 'POST':
-        available_time = dict_available_time[RequestForm.clientAvailableTime.data]
-        goal = lst_data[0][RequestForm.clientGoal.data][0]
-        client_name = ContactsForm.clientName.data
-        client_phone = ContactsForm.clientPhone.data
-        d = {'client_name': client_name, 'client_phone': client_phone,
-             'goal': goal, 'available_time': available_time}
-        appending_json('client_applications.json', d)
-        return render_template('request_done.html', available_time=available_time,
-                               goal=goal, client_name=client_name, client_phone=client_phone)
-    return render_template('request.html', RequestForm=RequestForm, ContactsForm=ContactsForm)
-
-
-#здесь будет форма бронирования
+#форма бронирования
 #@app.route('/booking/', methods=['GET', 'POST'])
 @app.route('/booking/<int:id_teacher>/<week_day>/<time>/', methods=['GET', 'POST'])
 def booking(id_teacher, week_day, time):
+    teacher_db = db.session.query(Teacher).get_or_404(id_teacher)
     form = ClientContacts()
     if form.validate_on_submit():
-        name = form.clientName.data
-        phone = form.clientPhone.data
+        client_name = form.clientName.data
+        client_phone = form.clientPhone.data
         week_day_hidden = form.clientWeekday.data
         time_hidden = form.clientTime.data
         id_teacher_hidden = form.clientTeacher.data
-        d = {'clientName': name, 'clientPhone': phone,
-             'id_teacher': id_teacher_hidden, 'week_day': week_day_hidden, 'time': time_hidden}
-        appending_json('client_booking.json', d)
+
+        student = Student(name=client_name, phone=client_phone)
+        db.session.add(student)
+
+        slot = db.session.query(TeacherSlot)\
+            .filter(db.and_(TeacherSlot.teacher_id == id_teacher_hidden,
+                    TeacherSlot.week_day == week_day_hidden,
+                    TeacherSlot.time == time_hidden)).first()
+        slot.is_available = False
+
+        booking = Booking(week_day=week_day_hidden, time=time_hidden,
+                          teacher_id=id_teacher_hidden, student=student, slot=slot)
+        db.session.add(booking)
+
+        db.session.commit()
         return render_template('booking_done.html',
-                               name=name,
-                               phone=phone,
+                               name=client_name,
+                               phone=client_phone,
                                id_teacher=id_teacher,
                                week_day_ru=dict_week_days[week_day],
                                time=time)
     return render_template('booking.html',
-                           data_teacher=lst_data[1][int(id_teacher)],
+                           data_teacher=teacher_db,
                            id_teacher=id_teacher,
                            week_day=week_day,
                            dict_week_days=dict_week_days,
                            time=time, form=form)
-
-#@app.route('/booking_done/', methods=['GET', 'POST'])   #заявка отправлена
-#def booking_done():
-    # form = ClientContacts(request.form)
-    # id_teacher = form.clientTeacher.data
-    # client = request.form['clientName']
-    # phone = form.clientPhone.data
-    # week_day = form.clientWeekday.data
-    # time = form.clientTime.data
-    # appending_json('client_applications.json', d)
-    # return render_template('booking_done.html',
-    #                        client=client,
-    #                        phone=phone,
-    #                        week_day=week_day, time=time,
-    #                        name_teacher=lst_data[1][int(id_teacher)]['name'])
 
 if __name__ == '__main__':
     app.run()  # запустим сервер
