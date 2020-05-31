@@ -24,8 +24,10 @@ dict_goals = {"travel": ["для путешествий", "⛱"], "study": ["д�
 
 ##### формы для бронирования учителей и запроса на подбор
 class ClientContacts(FlaskForm):
-    clientName = StringField('Вас зовут', [InputRequired(message='Эта информация нам нужна для обратной связи')])
-    clientPhone = StringField('Ваш телефон', [InputRequired(message='Эта информация нам нужна для обратной связи')])
+    clientName = StringField('Вас зовут',
+                             [InputRequired(message='Эта информация нам нужна для обратной связи')])
+    clientPhone = StringField('Ваш телефон',
+                              [InputRequired(message='Эта информация нам нужна для обратной связи')])
     clientTeacher = HiddenField()
     clientWeekday = HiddenField()
     clientTime = HiddenField()
@@ -35,7 +37,10 @@ class ClientRequest(FlaskForm):
                                      choices=[(key, value) for key, value in dict_time_ability.items()])
     clientGoal = RadioField('Какая цель занятий?', default='travel',
                             choices=[(key, value[0]) for key, value in dict_goals.items()])
-    # clientContacts = FormField(ClientContacts)
+    clientName = StringField('Вас зовут',
+                             [InputRequired(message='Эта информация нам нужна для обратной связи')])
+    clientPhone = StringField('Ваш телефон',
+                              [InputRequired(message='Эта информация нам нужна для обратной связи')])
 
 
 ############################## FLASK ################################
@@ -164,13 +169,12 @@ def profiles(id_teacher):
 # заявка на подбор
 @app.route('/request_teacher/', methods=['GET', 'POST'])
 def request_teacher():
-    FormRequest = ClientRequest()
-    FormContacts = ClientContacts()
-    if request.method == 'POST':     # FormRequest.validate_on_submit():
-        time_ability = dict_time_ability[FormRequest.clientAvailableTime.data]
-        goal = FormRequest.clientGoal.data
-        client_name = FormContacts.clientName.data
-        client_phone = FormContacts.clientPhone.data
+    form = ClientRequest()
+    if request.method == 'POST':   # form.validate_on_submit():
+        time_ability = dict_time_ability[form.clientAvailableTime.data]
+        goal = form.clientGoal.data
+        client_name = form.clientName.data
+        client_phone = form.clientPhone.data
 
         student = Student(name=client_name, phone=client_phone)
         db.session.add(student)
@@ -182,7 +186,7 @@ def request_teacher():
 
         return render_template('request_done.html', time_ability=time_ability,
                                goal=dict_goals[goal][0], client_name=client_name, client_phone=client_phone)
-    return render_template('request.html', RequestForm=FormRequest, ContactsForm=FormContacts)
+    return render_template('request.html', RequestForm=form)
 
 
 #форма бронирования

@@ -15,7 +15,7 @@
                 <p class="float-right">Рейтинг: {{ teacher.rating }} Ставка: {{ teacher.price }} / час</p>
                 <h2 class="h4">{{ teacher.name }}</h2>
                 <p>{{ teacher.about|truncate(350) }}</p>
-                <a href="/profiles/{{ teacher.id }}/" class="btn btn-outline-primary btn-sm mr-3 mb-2">Показать информацию и расписание</a>
+                <a href={{ url_for("profiles", id_teacher=teacher.id) }} class="btn btn-outline-primary btn-sm mr-3 mb-2">Показать информацию и расписание</a>
 
               </div>
             </div>
@@ -28,7 +28,7 @@
     <h2 class="text-center mt-5 mb-3">Не нашли своего репетитора?</h2>
     <p class="text-center mb-4">Расскажите, кто вам нужен и мы подберем его сами</p>
     <div class="text-center pb-5">
-        <a href="/request_teacher/" class="btn btn-primary">Заказать подбор</a>
+        <a href={{ url_for("request_teacher") }} class="btn btn-primary">Заказать подбор</a>
     </div>
 
 

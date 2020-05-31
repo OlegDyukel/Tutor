@@ -4,7 +4,7 @@
   <main class="container mt-3">
     <div class="row mt-5">
       <div class="col-10 col-md-6 offset-1 offset-md-3 mb-3">
-        <form action="/booking/{{ id_teacher }}/{{ week_day }}/{{ time }}/" method="POST" class="card mb-3">
+        <form action= {{ url_for("booking", id_teacher=id_teacher, week_day=week_day, time=time) }} method="POST" class="card mb-3">
           {{ form.csrf_token() }}
           <div class="card-body text-center pt-5">
             <img src="{{ data_teacher.picture }}" class="mb-3" width="95" alt="">

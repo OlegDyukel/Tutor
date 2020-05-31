@@ -5,31 +5,33 @@
     <div class="card my-4 mx-auto">
       <div class="card-body m-2 m-md-4">
         <article class="row">
-          <div class="col-5"><img src="{{ teacher.picture }}" class="img-fluid" alt=""></div>
+          <div class="col-5"><img src="{{ picture }}" class="img-fluid" alt=""></div>
           <div class="col-7">
 
             <section class="teacher=info">
 
-              <h1 class="h2">{{ teacher.name }}</h1>
-              <p>{% for goal in teacher.goals %}<span class="badge badge-secondary mr-2">{{ goals[goal][0] }}</span> {% endfor %}Рейтинг: {{ teacher.rating }} Ставка:
-                {{ teacher.price }} / час</p>
-              <p>{{ teacher.about }}</p>
+              <h1 class="h2">{{ name }}</h1>
+              <p>{% for goal in goals %}<span class="badge badge-secondary mr-2">{{ goals_ru[goal][0] }}</span> {% endfor %}Рейтинг: {{ rating }} Ставка:
+                {{ price }} / час</p>
+              <p>{{ about }}</p>
 
             </section>
 
             <section class="available">
 
               <h4 class="mb-4 mt-5">Записаться на пробный урок</h4>
-              {% for key, value in teacher.free.items() %}
-              <h6 class="mt-4">{{ dict_week_days[key] }}</h6>
-                {% if (value.values()|sum) == 0 %}
+              {% for week_day, week_day_ru in dict_week_days.items() %}
+
+              <h6 class="mt-4">{{ week_day_ru }}</h6>
+                {% if week_day in occupied_days %}
                   <p>Нет свободных уроков</p>
+                {% else %}
+                  {% for s in teacher_slot %}
+                    {% if s.week_day == week_day and s.is_available %}
+                      <a href = {{ url_for("booking", id_teacher=id, week_day=week_day, time=s.time) }} class ="btn btn-outline-success m-1"> {{ s.time }} свободно </a>
+                    {% endif %}
+                  {% endfor %}
                 {% endif %}
-                {% for subkey, subvalue in value.items() %}
-                  {% if subvalue %}
-                    <a href="/booking/{{ teacher.id }}/{{ key }}/{{ subkey }}" class="btn btn-outline-success m-1">{{ subkey }} свободно</a>
-                  {% endif %}
-                {% endfor %}
               {% endfor %}
 
             </section>

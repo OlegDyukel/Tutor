@@ -3,7 +3,7 @@
 {% block container %}
   <main class="container mt-5">
     <div class="col-12 col-sm-10 col-lg-6 offset-lg-3 offset-sm-1">
-      <form method="POST" action={{ url_for("request_teacher") }} class="card mb-5" name="FormRequest">
+      <form method="POST" action={{ url_for("request_teacher") }} class="card mb-5">
         <div class="card-body text-center pt-5">
           <h1 class="h3 card-title mt-4 mb-2">Подбор преподавателя</h1>
           <p class="px-5">Напишите, чего вам нужно и&nbsp;мы&nbsp;подберем отличных&nbsp;ребят</p>
@@ -31,10 +31,10 @@
         </div>
         <hr>
         <div class="card-body mx-3">
-          {{ ContactsForm.clientName.label(class_='control-label') }}
-          {{ ContactsForm.clientName(class_='form-control') }}
-          {{ ContactsForm.clientPhone.label(class_='control-label') }}
-          {{ ContactsForm.clientPhone(class_='form-control') }}
+          {{ RequestForm.clientName.label(class_='control-label') }}
+          {{ RequestForm.clientName(class_='form-control') }}
+          {{ RequestForm.clientPhone.label(class_='control-label') }}
+          {{ RequestForm.clientPhone(class_='form-control') }}
           <input type="submit" class="btn btn-primary mt-4 mb-2" value="Найдите мне преподавателя">
         </div>
       </form>
