@@ -32,6 +32,7 @@ class ClientContacts(FlaskForm):
     clientWeekday = HiddenField()
     clientTime = HiddenField()
 
+
 class ClientRequest(FlaskForm):
     clientAvailableTime = RadioField('Сколько времени есть?', default='a',
                                      choices=[(key, value) for key, value in dict_time_ability.items()])
@@ -51,6 +52,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)      # единожды запустить flask db init
 
+
 class Teacher(db.Model):
     __tablename__ = "teachers"
 
@@ -66,6 +68,7 @@ class Teacher(db.Model):
     slot = db.relationship("TeacherSlot", back_populates="teacher")
     booking = db.relationship("Booking", back_populates="teacher")
 
+
 class TeacherSlot(db.Model):
     __tablename__ = "teacher_slots"
 
@@ -80,6 +83,7 @@ class TeacherSlot(db.Model):
 
     booking = db.relationship("Booking", uselist=False, back_populates="slot")
 
+
 class Student(db.Model):
     __tablename__ = "students"
 
@@ -90,6 +94,7 @@ class Student(db.Model):
 
     booking = db.relationship("Booking", back_populates="student")
     teacher_request = db.relationship("TeacherRequest", back_populates="student")
+
 
 class Booking(db.Model):
     __tablename__ = "bookings"
@@ -106,6 +111,7 @@ class Booking(db.Model):
     student = db.relationship("Student", back_populates="booking")
     slot = db.relationship("TeacherSlot", back_populates="booking")
 
+
 class TeacherRequest(db.Model):
     __tablename__ = "teacher_requests"
 
@@ -118,7 +124,7 @@ class TeacherRequest(db.Model):
     student = db.relationship("Student", back_populates="teacher_request")
 
 
-#здесь будет главная
+# главная
 @app.route('/')   # выводим 6 случайных преподавателей
 @app.route('/<all>/')  # выводим всех преподавателей
 def index(all=None):
@@ -131,7 +137,7 @@ def index(all=None):
     return render_template('index.html', teachers=teachers, goals=goals)
 
 
-#здесь будет цель <goal>
+# страница препадавателей с заданной целью
 @app.route('/goals/<goal>/')
 def goals(goal):
     teachers_db = db.session.query(Teacher)\
@@ -140,7 +146,8 @@ def goals(goal):
     return render_template('goal.html', goal=dict_goals[goal], teachers=teachers_db)
 
 
-@app.route('/profiles/<int:id_teacher>/')  # здесь будет преподаватель <id учителя>
+# страница преподавателя
+@app.route('/profiles/<int:id_teacher>/')
 def profiles(id_teacher):
     teacher_db = db.session.query(Teacher).get_or_404(id_teacher)
     teacher_slot = db.session.query(TeacherSlot)\
@@ -166,6 +173,7 @@ def profiles(id_teacher):
                            occupied_days=occupied_days,
                            dict_week_days=dict_week_days)
 
+
 # заявка на подбор
 @app.route('/request_teacher/', methods=['GET', 'POST'])
 def request_teacher():
@@ -190,7 +198,6 @@ def request_teacher():
 
 
 #форма бронирования
-#@app.route('/booking/', methods=['GET', 'POST'])
 @app.route('/booking/<int:id_teacher>/<week_day>/<time>/', methods=['GET', 'POST'])
 def booking(id_teacher, week_day, time):
     teacher_db = db.session.query(Teacher).get_or_404(id_teacher)
@@ -228,6 +235,7 @@ def booking(id_teacher, week_day, time):
                            week_day=week_day,
                            dict_week_days=dict_week_days,
                            time=time, form=form)
+
 
 if __name__ == '__main__':
     app.run()  # запустим сервер
